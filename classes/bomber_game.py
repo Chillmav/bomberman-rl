@@ -52,82 +52,136 @@ class BomberGame:
         return self.map
 
     def step(self, move):
-    
-        self.agent_1.update_position(move, self.map)
-        self.agent_5.update_position(random.choice(["w", "s", "d", "a", "n"]), self.map) # n - nothing
         
-        return self.update_bombs()
+        bombs = self.agent_1.bomb_list + self.agent_5.bomb_list
+
+        move_reward_agent_1 = self.agent_1.update_position(move, self.map, bombs)
+        move_reward_agent_5 = self.agent_5.update_position(random.choice(["w", "s", "d", "a", "x"]), self.map, bombs) # x - nothing
         
+        bombing_rewards = self.update_bombs()
+
+        reward = bombing_rewards[0] + move_reward_agent_1, bombing_rewards[1] + move_reward_agent_5
+
+        # return observation, reward, done, info
+        return self.map, reward, self.players_check()
         
     
     def update_bombs(self):
-        
-        are_players_alive = True
 
-        for bomb in self.agent_1.bomb_list[:]:
-            if bomb.tick():
-                self.agent_1.bomb_list.remove(bomb)
-                result = self.explode_bomb(bomb)
-                if not result:
-                    are_players_alive = False
-        
-        for bomb in self.agent_5.bomb_list[:]:
-            if bomb.tick():
-                self.agent_5.bomb_list.remove(bomb)
-                result = self.explode_bomb(bomb)
-                if not result:
-                    are_players_alive = False
-
-        return are_players_alive
-            
-    def explode_bomb(self, bomb):  # return False if player is dead
-
-        x, y = bomb.position
-        bomb_power = bomb.bomb_power
-        
-        are_players_alive = True
-
+        rewards = [0, 0]
         max_rows, max_cols = self.map.shape
 
+        def handle_player_hit(px, py, bomb):
 
-        if [x, y] in [self.agent_1.position, self.agent_5.position]:
-            
-            self.map[x][y] = 4
-            are_players_alive = False
-            
-        else:
-            self.map[x][y] = 4
-
-
-        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-
-        for dx, dy in directions:
-            for i in range(1, bomb_power + 1):
-                nx = x + dx * i
-                ny = y + dy * i
-
-                if not (0 <= nx < max_rows and 0 <= ny < max_cols):
-                    break
-
-                if [nx, ny] in [self.agent_1.position, self.agent_5.position]:
-                    
-                    are_players_alive = False
-
-                tile = self.map[nx, ny]
-
-                if tile == 2:
-                      
-                    break
+            if (px, py) == self.agent_1.position:
                 
-                elif tile == 3:
-                     
-                    self.map[nx, ny] = 4
-                    break
+                self.map[px][py] = 4
                 
+                if bomb.owner == 1:
+                    rewards[0] -= 100
                 else:
-                    self.map[nx, ny] = 4
+                    rewards[0] -= 100
+                    rewards[1] += 100
 
-        return are_players_alive 
+            elif (px, py) == self.agent_5.position:
+
+                self.map[px][py] = 4
+                
+                if bomb.owner == 5:
+                    rewards[1] -= 100
+                else:
+                    rewards[0] += 100
+                    rewards[1] -= 100
+
+        # Process agent_1's bombs
+        for bomb in self.agent_1.bomb_list[:]:
+
+            
+
+            if bomb.tick():
+
+                self.agent_1.bomb_list.remove(bomb)
+
+                x, y = bomb.position
+                bomb_power = bomb.bomb_power
+
+                if bomb.position in [self.agent_1.position, self.agent_5.position]:
+                    handle_player_hit(x, y, bomb)
+                else:
+                    self.map[x][y] = 4
+
+                directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+
+                for dx, dy in directions:
+                    for i in range(1, bomb_power + 1):
+                        nx = x + dx * i
+                        ny = y + dy * i
+
+                        if not (0 <= nx < max_rows and 0 <= ny < max_cols):
+                            break
+
+                        if (nx, ny) == self.agent_1.position or (nx, ny) == self.agent_5.position:
+                            handle_player_hit(nx, ny, bomb)
+
+                        tile = self.map[nx, ny]
+
+                        if tile == 2:
+                            break
+                        elif tile == 3:
+                            rewards[0] += 5
+                            self.map[nx, ny] = 4
+                            break
+                        else:
+                            self.map[nx, ny] = 4
+
+        # Process agent_5's bombs
+        for bomb in self.agent_5.bomb_list[:]:
+
+            if bomb.tick():
+
+                self.agent_5.bomb_list.remove(bomb)
+
+                x, y = bomb.position
+                bomb_power = bomb.bomb_power
+
+                if bomb.position in [self.agent_1.position, self.agent_5.position]:
+
+                    handle_player_hit(x, y, bomb)
+
+                else:
+                    self.map[x][y] = 4
+
+                directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+
+                for dx, dy in directions:
+                    for i in range(1, bomb_power + 1):
+
+                        nx = x + dx * i
+                        ny = y + dy * i
+
+                        if not (0 <= nx < max_rows and 0 <= ny < max_cols):
+                            break
+
+                        if (nx, ny) == self.agent_1.position or (nx, ny) == self.agent_5.position:
+                            handle_player_hit(nx, ny, bomb)
+
+                        tile = self.map[nx, ny]
+
+                        if tile == 2:
+                            break
+
+                        elif tile == 3:
+                            rewards[1] += 5
+                            self.map[nx, ny] = 4
+                            break
+
+                        else:
+                            self.map[nx, ny] = 4
+
+        return rewards
+
+
+
      
     def clean_animations(self):
         
@@ -136,4 +190,31 @@ class BomberGame:
                 if self.map[row, col] == 4:
                     
                     self.map[row, col] = 0
-        
+
+    def players_check(self):
+
+        is_player_1_alive = False
+        is_player_5_alive = False
+        game_in_progress = True
+
+        for row in range(11):
+            for col in range(13):
+                if self.map[row, col] == 1:
+                    is_player_1_alive = True
+                elif self.map[row, col] == 5:
+                    is_player_5_alive = True
+
+        if False in [is_player_1_alive, is_player_5_alive]:
+
+            if (is_player_1_alive == False and is_player_5_alive == True):
+                result = "player 5 won"
+            elif (is_player_1_alive == True and is_player_5_alive == False):
+                result = "player 1 won"
+            elif (is_player_1_alive == False and is_player_5_alive == False):
+                result = "both players lost"
+
+            print(f"game over, {result}")
+            game_in_progress = False
+
+
+        return game_in_progress

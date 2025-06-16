@@ -2,4 +2,8 @@ Lib
 Include
 Scripts
 __pycache__
+bin
+include
+lib64
+lib
 

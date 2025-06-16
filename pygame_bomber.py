@@ -47,6 +47,7 @@ def draw_game(map, game):
         
 game = BomberGame()
 game.generate_map()
+cum_reward = [0, 0]
 
 while running:
     
@@ -72,7 +73,10 @@ while running:
             move = key_map.get(event.key, "x")
 
             game.clean_animations()
-            running = game.step(move)
+            map, reward, running = game.step(move)
+            cum_reward[0] += reward[0]
+            cum_reward[1] += reward[1]
+            print(cum_reward)
             screen.fill([244, 164, 96])
             draw_game(game.map, game)
             pygame.display.flip() 
