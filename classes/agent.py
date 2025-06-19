@@ -72,6 +72,7 @@ class Agent:
     def collect_delayed_rewards(self, bomb_reward):
 
         if self.delayed_rewards:
+            
             for action in self.delayed_rewards:
                 action[0] -= 1
             

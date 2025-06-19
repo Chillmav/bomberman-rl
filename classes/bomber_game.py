@@ -21,7 +21,7 @@ class BomberGame:
         self.agent_5 = Agent(start_pos=[10, 12], player_number=5)
         self.map = np.zeros((11, 13), dtype=int)
         self.bombs = []
-        self.dist = 0
+        self.dist = None
 
     def generate_map(self):
         
@@ -73,7 +73,7 @@ class BomberGame:
 
         reward = delayed_reward_1 + move_reward_agent_1 + death_reward_1 + dist_reward, delayed_reward_5 + move_reward_agent_5 + death_reward_5 + dist_reward
         print(reward)
-        print(dist_reward)
+
 
         # return observation, reward, done, info
         return self.map, reward, self.players_check()
@@ -244,7 +244,8 @@ class BomberGame:
         
     def distance_reward(self, prev_dist):
 
-        if self.agent_1.position == [-1, -1] or self.agent_5.position == [-1 , 1]:
+        if self.agent_1.position == [-1, -1] or self.agent_5.position == [-1 , -1]:
+            
             return 0, 0
         
         new_dist = shortest_path(self.agent_1.position, self.agent_5.position, self.map)
