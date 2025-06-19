@@ -1,6 +1,8 @@
 import numpy as np
 import random
 from classes.agent import Agent
+from collections import deque
+from utils.shortest_path import shortest_path
 
 # 0 - path, 1 - player, 2 - perm_wall, 3 - wall, 4 - bomb_animation, 5 - second player
 
@@ -19,7 +21,8 @@ class BomberGame:
         self.agent_5 = Agent(start_pos=[10, 12], player_number=5)
         self.map = np.zeros((11, 13), dtype=int)
         self.bombs = []
-    
+        self.dist = 0
+
     def generate_map(self):
         
         # player
@@ -60,7 +63,17 @@ class BomberGame:
         
         bombing_rewards = self.update_bombs()
 
-        reward = bombing_rewards[0] + move_reward_agent_1, bombing_rewards[1] + move_reward_agent_5
+        delayed_reward_1 = self.agent_1.collect_delayed_rewards(bombing_rewards[0])
+        delayed_reward_5 = self.agent_5.collect_delayed_rewards(bombing_rewards[1])
+
+        death_reward_5 = self.death_check(self.agent_5)
+        death_reward_1 = self.death_check(self.agent_1)
+
+        self.dist, dist_reward = self.distance_reward(self.dist)
+
+        reward = delayed_reward_1 + move_reward_agent_1 + death_reward_1 + dist_reward, delayed_reward_5 + move_reward_agent_5 + death_reward_5 + dist_reward
+        print(reward)
+        print(dist_reward)
 
         # return observation, reward, done, info
         return self.map, reward, self.players_check()
@@ -73,30 +86,32 @@ class BomberGame:
 
         def handle_player_hit(px, py, bomb):
 
-            if (px, py) == self.agent_1.position:
-                
-                self.map[px][py] = 4
-                
-                if bomb.owner == 1:
-                    rewards[0] -= 100
-                else:
-                    rewards[0] -= 100
-                    rewards[1] += 100
+            self.map[px][py] = 4
 
-            elif (px, py) == self.agent_5.position:
+            if [px, py] == self.agent_1.position:
 
-                self.map[px][py] = 4
-                
+                self.agent_1.position = [-1, -1] 
+
                 if bomb.owner == 5:
-                    rewards[1] -= 100
+                    rewards[1] += 50
+
                 else:
-                    rewards[0] += 100
-                    rewards[1] -= 100
+                    rewards[0] -= 50
+
+            elif [px, py] == self.agent_5.position:
+
+                self.agent_5.position = [-1, -1]
+
+                if bomb.owner == 1:
+
+                    rewards[0] += 50
+
+                else:
+
+                    rewards[1] -= 50
 
         # Process agent_1's bombs
         for bomb in self.agent_1.bomb_list[:]:
-
-            
 
             if bomb.tick():
 
@@ -105,10 +120,11 @@ class BomberGame:
                 x, y = bomb.position
                 bomb_power = bomb.bomb_power
 
-                if bomb.position in [self.agent_1.position, self.agent_5.position]:
+                if [x, y] == self.agent_1.position or [x, y] == self.agent_5.position:
                     handle_player_hit(x, y, bomb)
                 else:
                     self.map[x][y] = 4
+
 
                 directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
@@ -120,7 +136,7 @@ class BomberGame:
                         if not (0 <= nx < max_rows and 0 <= ny < max_cols):
                             break
 
-                        if (nx, ny) == self.agent_1.position or (nx, ny) == self.agent_5.position:
+                        if [nx, ny] == self.agent_1.position or [nx, ny] == self.agent_5.position:
                             handle_player_hit(nx, ny, bomb)
 
                         tile = self.map[nx, ny]
@@ -144,11 +160,12 @@ class BomberGame:
                 x, y = bomb.position
                 bomb_power = bomb.bomb_power
 
-                if bomb.position in [self.agent_1.position, self.agent_5.position]:
+                if [x, y] == self.agent_1.position or [x, y] == self.agent_5.position:
 
                     handle_player_hit(x, y, bomb)
 
                 else:
+                    
                     self.map[x][y] = 4
 
                 directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
@@ -162,7 +179,7 @@ class BomberGame:
                         if not (0 <= nx < max_rows and 0 <= ny < max_cols):
                             break
 
-                        if (nx, ny) == self.agent_1.position or (nx, ny) == self.agent_5.position:
+                        if [nx, ny] == self.agent_1.position or [nx, ny] == self.agent_5.position:
                             handle_player_hit(nx, ny, bomb)
 
                         tile = self.map[nx, ny]
@@ -216,5 +233,20 @@ class BomberGame:
             print(f"game over, {result}")
             game_in_progress = False
 
-
         return game_in_progress
+    
+    def death_check(self, player):
+
+        if player.position == [-1, -1]:
+            return -50
+        else:
+            return 0
+        
+    def distance_reward(self, prev_dist):
+
+        if self.agent_1.position == [-1, -1] or self.agent_5.position == [-1 , 1]:
+            return 0, 0
+        
+        new_dist = shortest_path(self.agent_1.position, self.agent_5.position, self.map)
+
+        return new_dist, prev_dist - new_dist

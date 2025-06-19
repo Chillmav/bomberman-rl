@@ -11,7 +11,7 @@ class Agent:
         self.bomb_power = bomb_power
         self.bomb_list = []
         self.player_number = player_number
-        self.alive = True
+        self.delayed_rewards = []
         
     def action(self, move):
         
@@ -61,9 +61,22 @@ class Agent:
             bomb = Bomb([self.position[0], self.position[1]], owner=self.player_number)
             
             self.bomb_list.append(bomb)
+            self.delayed_rewards.append([4, 0])
 
-            return 1
+            return 0
 
         else:
 
             return -1
+        
+    def collect_delayed_rewards(self, bomb_reward):
+
+        if self.delayed_rewards:
+            for action in self.delayed_rewards:
+                action[0] -= 1
+            
+            if self.delayed_rewards[0][0] <= 0:
+                self.delayed_rewards.pop(0) 
+                return bomb_reward
+                
+        return 0

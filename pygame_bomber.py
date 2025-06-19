@@ -2,6 +2,7 @@ import pygame
 from classes.bomber_game import BomberGame
 from utils.images import bomb_cv_player_1_img, player_1, player_5, explosion, breakable, unbreakable, bomb_cv_player_5_img
 from utils.black_to_brows import replace_black_with_brown
+from utils.shortest_path import shortest_path
 import numpy as np
 
 pygame.init()
@@ -47,7 +48,8 @@ def draw_game(map, game):
         
 game = BomberGame()
 game.generate_map()
-cum_reward = [0, 0]
+
+game.dist = shortest_path(game.agent_1.position, game.agent_5.position, game.map)
 
 while running:
     
@@ -73,10 +75,9 @@ while running:
             move = key_map.get(event.key, "x")
 
             game.clean_animations()
+
             map, reward, running = game.step(move)
-            cum_reward[0] += reward[0]
-            cum_reward[1] += reward[1]
-            print(cum_reward)
+
             screen.fill([244, 164, 96])
             draw_game(game.map, game)
             pygame.display.flip() 
