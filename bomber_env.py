@@ -1,16 +1,16 @@
 from classes.bomber_game import BomberGame
-import numpy as np
+import torch
 
 class BomberWrapper:
 
-    def __init__(self):
+    def __init__(self, game):
 
-        self.game = BomberGame()
+        self.game = game
         self.action_space_n = 6
         self.reset()
 
     def reset(self):
-
+        self.game = BomberGame()
         self.game.generate_map()
         self.game.agent_1.position = [0, 0]
         self.game.agent_5.position = [10, 12]
@@ -27,8 +27,7 @@ class BomberWrapper:
 
     def get_observation(self):
 
-        obs = np.zeros((4, 11, 13), dtype=np.float32)
-
+        obs = torch.zeros((4, 11, 13), dtype=torch.float32)
 
         # channel 1 - objects + players
         for x in range(11):
@@ -69,4 +68,3 @@ class BomberWrapper:
             obs[3, x, y] = bomb.timer / 3
         
         return obs
-

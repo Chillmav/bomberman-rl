@@ -52,7 +52,7 @@ class Agent:
             
             else:
                 
-                return -1
+                return -5
         
         elif move == "f":
             

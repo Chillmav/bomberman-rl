@@ -72,7 +72,6 @@ class BomberGame:
         self.dist, dist_reward = self.distance_reward(self.dist)
 
         reward = delayed_reward_1 + move_reward_agent_1 + death_reward_1 + dist_reward, delayed_reward_5 + move_reward_agent_5 + death_reward_5 + dist_reward
-        print(reward)
 
 
         # return observation, reward, done, info
@@ -93,10 +92,10 @@ class BomberGame:
                 self.agent_1.position = [-1, -1] 
 
                 if bomb.owner == 5:
-                    rewards[1] += 50
+                    rewards[1] += 25
 
                 else:
-                    rewards[0] -= 50
+                    rewards[0] -= 25
 
             elif [px, py] == self.agent_5.position:
 
@@ -104,11 +103,11 @@ class BomberGame:
 
                 if bomb.owner == 1:
 
-                    rewards[0] += 50
+                    rewards[0] += 25
 
                 else:
 
-                    rewards[1] -= 50
+                    rewards[1] -= 25
 
         # Process agent_1's bombs
         for bomb in self.agent_1.bomb_list[:]:
@@ -238,7 +237,7 @@ class BomberGame:
     def death_check(self, player):
 
         if player.position == [-1, -1]:
-            return -50
+            return -25
         else:
             return 0
         
