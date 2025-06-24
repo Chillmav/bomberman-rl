@@ -48,11 +48,11 @@ class Agent:
                 
                 self.position = new_position
                 
-                return 1
+                return 0.1
             
             else:
                 
-                return -5
+                return -0.2
         
         elif move == "f":
             
@@ -63,11 +63,11 @@ class Agent:
             self.bomb_list.append(bomb)
             self.delayed_rewards.append([4, 0])
 
-            return 0
+            return -0.5
 
         else:
 
-            return -1
+            return -0.2
         
     def collect_delayed_rewards(self, bomb_reward):
 

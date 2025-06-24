@@ -1,7 +1,7 @@
 
 class Bomb:
     
-    def __init__(self, position, timer=4, bomb_power=2, owner=int):
+    def __init__(self, position, timer=6, bomb_power=2, owner=int):
         
         self.position = position
         self.timer = timer

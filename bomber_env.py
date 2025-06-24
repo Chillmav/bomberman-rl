@@ -1,3 +1,4 @@
+from collections import deque
 from classes.bomber_game import BomberGame
 import torch
 
@@ -8,7 +9,8 @@ class BomberWrapper:
         self.game = game
         self.action_space_n = 6
         self.reset()
-
+        self.memory = deque(maxlen=10000)
+        
     def reset(self):
         self.game = BomberGame()
         self.game.generate_map()
@@ -17,6 +19,10 @@ class BomberWrapper:
         self.game.dist = 0
         return self.get_observation()
     
+    def remember(self, state, action, reward, next_state, done):
+        
+        self.memory.append((state, action, reward, next_state, done))
+        
     def step(self, action):
 
         self.game.clean_animations()

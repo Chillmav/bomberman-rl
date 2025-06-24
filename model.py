@@ -1,19 +1,22 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from bomber_env import BomberWrapper
 
 class BomberModel(nn.Module):
-
     def __init__(self, channels, n, m, action_space_n):
         super().__init__()
 
-        input_size = n * m * channels
-
-        self.feature_extractor = nn.Sequential(
-            nn.Linear(input_size, 512),
+        self.conv = nn.Sequential(
+            nn.Conv2d(channels, 32, kernel_size=3, padding=1), 
             nn.ReLU(),
-            nn.Linear(512, 256),
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),        
+            nn.ReLU()
+        )
+
+        conv_out_dim = 64 * n * m  
+
+        self.fc = nn.Sequential(
+            nn.Linear(conv_out_dim, 256),
             nn.ReLU()
         )
 
@@ -28,11 +31,19 @@ class BomberModel(nn.Module):
         )
 
     def forward(self, observation: torch.Tensor):
-        print("Obs shape:", observation.shape)
-        x = observation.flatten()  # spłaszcza całość do [572]
-        x = x.unsqueeze(0)         # dodaje batch dim -> [1, 572]
-        features = self.feature_extractor(x)
+
+        if observation.dim() == 3: 
+            x = observation.unsqueeze(0)  
+        elif observation.dim() == 4:  
+            x = observation
+        elif observation.dim() == 5:  
+            x = observation.squeeze(0)
+        else:
+            raise ValueError(f"Unexpected input dimension: {observation.dim()}")
+        
+        x = self.conv(x)
+        x = x.view(x.size(0), -1) 
+        features = self.fc(x)
         logits = self.actor(features)
         value = self.critic(features)
-        return logits.squeeze(0), value.squeeze(0)
-
+        return logits, value
